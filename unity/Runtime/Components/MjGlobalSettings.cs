@@ -75,6 +75,14 @@ public struct MjcfOptionFlag {
   public EnableDisableFlag Energy;
   public EnableDisableFlag FwdInv;
   public EnableDisableFlag MultiCCD;
+  // ⚠️ 2026-08-03 추가(PhysicalAI_Sim Go1 이식 트랙) — Unity Plugin이 <flag eulerdamp=.../>를
+  // 임포트/재수출하지 않아 Euler 적분기의 implicit joint damping이 항상 강제로 켜져 있던 갭을
+  // 메운다. 헤드리스 역방향 재현실험(go1_solver_repro.py)으로 이 플래그가 강제 enable될 때
+  // Go1 걷기 정책이 t=0.376s에 낙상함을 결정론적으로 확인했다 — 원본 XML은 대부분
+  // eulerdamp="disable"로 명시하는데 그게 무시되고 있었다. 기본값은 기존 관찰 동작과
+  // 동일하게 enable로 둔다(아래 Default) — 즉 XML에 eulerdamp 속성이 없는 기존 모든 씬은
+  // 동작 불변, eulerdamp를 명시한 XML만 원래 의도대로 복원된다.
+  public EnableDisableFlag EulerDamp;
   public static MjcfOptionFlag Default = new MjcfOptionFlag() {
     Constraint = EnableDisableFlag.enable,
     Equality = EnableDisableFlag.enable,
@@ -92,7 +100,8 @@ public struct MjcfOptionFlag {
     Override = EnableDisableFlag.disable,
     Energy = EnableDisableFlag.disable,
     FwdInv = EnableDisableFlag.disable,
-    MultiCCD = EnableDisableFlag.enable
+    MultiCCD = EnableDisableFlag.enable,  // 4.0.0 업스트림 기본값(enable) 채택
+    EulerDamp = EnableDisableFlag.enable
   };
 
   public void FromMjcf(XmlElement mjcf) {
@@ -116,6 +125,7 @@ public struct MjcfOptionFlag {
     Energy = mjcf.GetEnumAttribute<EnableDisableFlag>("energy", localDefault.Energy);
     FwdInv = mjcf.GetEnumAttribute<EnableDisableFlag>("fwdinv", localDefault.FwdInv);
     MultiCCD = mjcf.GetEnumAttribute<EnableDisableFlag>("multiccd", localDefault.MultiCCD);
+    EulerDamp = mjcf.GetEnumAttribute<EnableDisableFlag>("eulerdamp", localDefault.EulerDamp);
   }
 
   public void ToMjcf(XmlElement mjcf) {
@@ -136,6 +146,7 @@ public struct MjcfOptionFlag {
     mjcf.SetAttribute("energy", Energy.ToString());
     mjcf.SetAttribute("fwdinv", FwdInv.ToString());
     mjcf.SetAttribute("multiccd", MultiCCD.ToString());
+    mjcf.SetAttribute("eulerdamp", EulerDamp.ToString());
   }
 }
 

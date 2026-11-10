@@ -30,6 +30,10 @@ public class PhysicsRuntimeException : Exception {
   public PhysicsRuntimeException(string message) : base(message) {}
 }
 
+// Phase A Week 4 race condition fix: Awake 가장 먼저 호출되어 _instance 세팅 보장.
+// panda(11 body + 8 actuator) 같은 모델에서 자식 OnEnable이 MjScene.Awake보다 먼저
+// 호출되어 MjScene.Instance getter trigger → multiple instances 예외 발생을 방지.
+[DefaultExecutionOrder(-32000)]
 public class MjScene : MonoBehaviour {
 
   public unsafe MujocoLib.mjModel_* Model = null;
@@ -135,8 +139,10 @@ public class MjScene : MonoBehaviour {
     // I briefly explored that approach, but decided against it. It increases the amount of code
     // on the side of the individual components. This solution allows to restrict the code in the
     // components to a bare minimum, at the expense of one extra method here.
-    var hierarchyRoots = FindObjectsByType<MjComponent>(FindObjectsSortMode.None)
-        .OrderBy(component => component.GetInstanceID())
+    // #64 patcher — Play 마다 루트 순서가 달라지는 비결정성 완화 시도(1단계).
+    // FindObjectsSortMode.None → InstanceID 로 정렬해 매 호출 내에서는 결정적 순서를 보장한다.
+    // 단, Unity InstanceID 는 로드마다 재할당되므로 "Play 간 상대순서 고정"은 검증으로 판정해야 한다.
+    var hierarchyRoots = FindObjectsByType<MjComponent>(FindObjectsSortMode.InstanceID)
         .Where(component => MjHierarchyTool.FindParentComponent(component) == null)
         .Select(component => component.transform)
         .Distinct();
