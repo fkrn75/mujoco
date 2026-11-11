@@ -30,6 +30,8 @@ public abstract class MjBaseTendon : MjComponent {
   public float SpringLengthUpper = -1.0f;
   public float Stiffness = 0.0f;
   public float Damping = 0.0f;
+  [Tooltip("MuJoCo 4.0 elasto-plasticity: tendon spring yield threshold in meters (0 = purely elastic).")]
+  public float SpringYield = 0.0f;
 
   // Tendon length.
   public float Length { get; private set; }
@@ -56,6 +58,7 @@ public abstract class MjBaseTendon : MjComponent {
     }
     Stiffness = mjcf.GetFloatAttribute("stiffness");
     Damping = mjcf.GetFloatAttribute("damping");
+    SpringYield = mjcf.GetFloatAttribute("springyield", 0.0f);
     FromMjcf(mjcf);
   }
 
@@ -71,6 +74,9 @@ public abstract class MjBaseTendon : MjComponent {
         MjEngineTool.MakeLocaleInvariant($"{SpringLengthLower} {SpringLengthUpper}"));
     mjcf.SetAttribute("damping", MjEngineTool.MakeLocaleInvariant($"{Damping}"));
     mjcf.SetAttribute("stiffness", MjEngineTool.MakeLocaleInvariant($"{Stiffness}"));
+    if (SpringYield > 0.0f) {
+      mjcf.SetAttribute("springyield", MjEngineTool.MakeLocaleInvariant($"{SpringYield}"));
+    }
     return mjcf;
   }
 

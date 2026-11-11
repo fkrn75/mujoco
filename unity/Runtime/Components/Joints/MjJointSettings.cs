@@ -60,12 +60,21 @@ namespace Mujoco {
     [Tooltip("Spring equilibrium pose.")]
     public float EquilibriumPose;
 
+    // MuJoCo 4.0 elasto-plasticity: 스프링 변위가 이 값을 넘으면 평형 기준이 영구히 이동한다.
+    // 0 = 끔(기본). hinge/ball은 각도(MJCF 기본 degree), slide는 미터. free joint에는 지원되지 않는다.
+    [Tooltip("Elastic yield threshold of the spring (0 = purely elastic). Angular joints: same unit as the equilibrium pose.")]
+    public float SpringYield;
+
     public void ToMjcf(XmlElement mjcf) {
       // Spring settings.
       mjcf.SetAttribute("springref", MjEngineTool.MakeLocaleInvariant($"{EquilibriumPose}"));
       mjcf.SetAttribute("springdamper", MjEngineTool.MakeLocaleInvariant($"{TimeConstant} {DampingRatio}"));
       mjcf.SetAttribute("damping", MjEngineTool.MakeLocaleInvariant($"{Damping}"));
       mjcf.SetAttribute("stiffness", MjEngineTool.MakeLocaleInvariant($"{Stiffness}"));
+      // 0이면 속성을 쓰지 않아 기존 모델의 MJCF가 바뀌지 않는다.
+      if (SpringYield > 0.0f) {
+        mjcf.SetAttribute("springyield", MjEngineTool.MakeLocaleInvariant($"{SpringYield}"));
+      }
     }
 
     public void FromMjcf(XmlElement mjcf, bool referenceIsAngular = true) {
@@ -78,6 +87,10 @@ namespace Mujoco {
       }
       Damping = mjcf.GetFloatAttribute("damping", 0.0f);
       Stiffness = mjcf.GetFloatAttribute("stiffness", 0.0f);
+      SpringYield = mjcf.GetFloatAttribute("springyield", 0.0f);
+      if (referenceIsAngular && !MjSceneImportSettings.AnglesInDegrees) {
+        SpringYield *= Mathf.Rad2Deg;
+      }
     }
   }
 
