@@ -94,6 +94,7 @@ public class MjImporterWithAssets : MjcfImporter {
       gameObject.AddComponent<MjMeshFilter>();
       var renderer = gameObject.AddComponent<MeshRenderer>();
       ResolveOrCreateMaterial(renderer, child);
+      gameObject.GetComponent<MjGeom>().ApplyShadowMode(renderer);
     }
   }
 

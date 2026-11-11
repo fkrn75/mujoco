@@ -30,6 +30,16 @@ public class MjGeom : MjShapeComponent {
   [Tooltip("Advanced settings.")]
   public MjGeomSettings Settings = MjGeomSettings.Default;
 
+  // MuJoCo 4.0 castshadow: false 이면 이 geom 의 MeshRenderer 는 그림자를 드리우지 않는다(렌더링 전용 속성).
+  [Tooltip("MJCF castshadow. When false, the MeshRenderer does not cast shadows.")]
+  public bool CastShadow = true;
+
+  // import 시 MeshRenderer.shadowCastingMode 에 반영한다.
+  public void ApplyShadowMode(MeshRenderer renderer) {
+    renderer.shadowCastingMode = CastShadow ? UnityEngine.Rendering.ShadowCastingMode.On
+                                            : UnityEngine.Rendering.ShadowCastingMode.Off;
+  }
+
   public override MujocoLib.mjtObj ObjectType => MujocoLib.mjtObj.mjOBJ_GEOM;
   private MjTransformation _geomInGlobalFrame = new MjTransformation();
   private MjTransformation _comTransform;
@@ -38,6 +48,7 @@ public class MjGeom : MjShapeComponent {
     ShapeFromMjcf(mjcf);
     Mass = mjcf.GetFloatAttribute("mass", defaultValue: 0.0f);
     Density = mjcf.GetFloatAttribute("density", defaultValue: 1000.0f);
+    CastShadow = mjcf.GetBoolAttribute("castshadow", defaultValue: true);
     MjEngineTool.ParseTransformMjcf(mjcf, transform);
     Settings.FromMjcf(mjcf);
   }
@@ -73,6 +84,10 @@ public class MjGeom : MjShapeComponent {
     ShapeToMjcf(mjcf, transform);
     MjEngineTool.PositionRotationToMjcf(mjcf, this);
     Settings.ToMjcf(mjcf);
+    // 기본값(true)이면 쓰지 않아 기존 모델의 MJCF 는 바뀌지 않는다.
+    if (!CastShadow) {
+      mjcf.SetAttribute("castshadow", "false");
+    }
 
     return mjcf;
   }

@@ -240,6 +240,7 @@ public class MjcfImporter {
       gameObject.AddComponent<MjMeshFilter>();
       var renderer = gameObject.AddComponent<MeshRenderer>();
       renderer.sharedMaterial = DefaultMujocoMaterial;
+      gameObject.GetComponent<MjGeom>().ApplyShadowMode(renderer);
     }
   }
 
