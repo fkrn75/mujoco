@@ -83,6 +83,11 @@ public struct MjcfOptionFlag {
   // 동일하게 enable로 둔다(아래 Default) — 즉 XML에 eulerdamp 속성이 없는 기존 모든 씬은
   // 동작 불변, eulerdamp를 명시한 XML만 원래 의도대로 복원된다.
   public EnableDisableFlag EulerDamp;
+  // MuJoCo 4.0 speculative contacts: 빠른 볼록 geom이 얇은 장애물을 한 스텝에 뚫는 터널링을 막는다.
+  // 의도적으로 bool로 둔다 — EnableDisableFlag는 enable이 0이라서, 이 필드가 없던 기존
+  // 직렬화 씬을 불러오면 값이 0(=enable)으로 들어가 기본 disable 원칙이 깨진다. bool은 0=false=disable.
+  [Tooltip("MuJoCo 4.0 speculative contacts 사용 (기본 꺼짐)")]
+  public bool Speculative;
   public static MjcfOptionFlag Default = new MjcfOptionFlag() {
     Constraint = EnableDisableFlag.enable,
     Equality = EnableDisableFlag.enable,
@@ -101,7 +106,8 @@ public struct MjcfOptionFlag {
     Energy = EnableDisableFlag.disable,
     FwdInv = EnableDisableFlag.disable,
     MultiCCD = EnableDisableFlag.enable,  // 4.0.0 업스트림 기본값(enable) 채택
-    EulerDamp = EnableDisableFlag.enable
+    EulerDamp = EnableDisableFlag.enable,
+    Speculative = false
   };
 
   public void FromMjcf(XmlElement mjcf) {
@@ -126,6 +132,7 @@ public struct MjcfOptionFlag {
     FwdInv = mjcf.GetEnumAttribute<EnableDisableFlag>("fwdinv", localDefault.FwdInv);
     MultiCCD = mjcf.GetEnumAttribute<EnableDisableFlag>("multiccd", localDefault.MultiCCD);
     EulerDamp = mjcf.GetEnumAttribute<EnableDisableFlag>("eulerdamp", localDefault.EulerDamp);
+    Speculative = mjcf.GetStringAttribute("speculative", "disable") == "enable";
   }
 
   public void ToMjcf(XmlElement mjcf) {
@@ -147,6 +154,7 @@ public struct MjcfOptionFlag {
     mjcf.SetAttribute("fwdinv", FwdInv.ToString());
     mjcf.SetAttribute("multiccd", MultiCCD.ToString());
     mjcf.SetAttribute("eulerdamp", EulerDamp.ToString());
+    mjcf.SetAttribute("speculative", Speculative ? "enable" : "disable");
   }
 }
 
