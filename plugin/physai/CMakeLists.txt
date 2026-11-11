@@ -27,6 +27,8 @@ endif()
 
 add_library(physai_plugins SHARED
   register.cc
+  drivetrain.cc
+  drivetrain.h
 )
 set_target_properties(physai_plugins PROPERTIES
   LIBRARY_OUTPUT_DIRECTORY "${PHYSAI_OUT_DIR}"

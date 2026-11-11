@@ -21,7 +21,14 @@ Write-Host "빌드 완료: $dll"
 if ($Install) {
   $dst = Join-Path $root "unity\Runtime\Plugins"
   New-Item -ItemType Directory -Force $dst | Out-Null
-  Copy-Item $dll $dst -Force
+  $target = Join-Path $dst "physai_plugins.dll"
+  if (Test-Path $target) {
+    # 로드 중(에디터/파이썬)인 dll 은 덮어쓸 수 없지만 이름 변경은 가능하다
+    try { Copy-Item $dll $target -Force } catch {
+      Move-Item $target ("$target.old." + (Get-Date -Format yyyyMMddHHmmss)) -Force
+      Copy-Item $dll $target -Force
+    }
+  } else { Copy-Item $dll $target -Force }
   Copy-Item "$MujocoRoot\bin\mujoco_plugin\actuator.dll" $dst -Force
   Write-Host "설치: $dst"
 }

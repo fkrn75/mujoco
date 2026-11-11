@@ -389,6 +389,22 @@ public static class MjEngineTool {
     yield return Path.Combine(Application.streamingAssetsPath, "MuJoCoPlugins");
   }
 
+  // 원본 dll 이 에디터 프로세스에 잠기지 않도록, 수정시각·크기가 이름에 들어간 사본(temporaryCachePath)을 로드한다.
+  // 주의: 같은 플러그인 이름은 한 프로세스에서 두 번 등록할 수 없으므로, 새 dll 버전을 쓰려면 프로세스(에디터) 재시작이 필요하다.
+  private static string ShadowCopy(string src) {
+    try {
+      var fi = new FileInfo(src);
+      string dir = Path.Combine(Application.temporaryCachePath, "MjPlugins");
+      Directory.CreateDirectory(dir);
+      string name = Path.GetFileNameWithoutExtension(src) + "_" + fi.LastWriteTimeUtc.Ticks.ToString("x") + "_" + fi.Length + ".dll";
+      string dst = Path.Combine(dir, name);
+      if (!File.Exists(dst)) File.Copy(src, dst);
+      return dst;
+    } catch (Exception) {
+      return src;  // 복사 실패 시 원본을 직접 로드
+    }
+  }
+
   // 모델을 로드하기 "전에" 1회 호출해야 모델의 <extension><plugin> 이 해석된다.
   public static void LoadPlugins() {
     if (_pluginsLoaded) return;
@@ -400,7 +416,7 @@ public static class MjEngineTool {
       foreach (string pluginPath in Directory.GetFiles(dir, "*.dll")) {
         string full = Path.GetFullPath(pluginPath);
         if (!seen.Add(full.ToLowerInvariant())) continue;
-        MujocoLib.mj_loadPluginLibrary(full);
+        MujocoLib.mj_loadPluginLibrary(ShadowCopy(full));
       }
     }
   }
