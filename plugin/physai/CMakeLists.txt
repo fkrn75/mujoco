@@ -29,6 +29,8 @@ add_library(physai_plugins SHARED
   register.cc
   drivetrain.cc
   drivetrain.h
+  winch.cc
+  winch.h
 )
 set_target_properties(physai_plugins PROPERTIES
   LIBRARY_OUTPUT_DIRECTORY "${PHYSAI_OUT_DIR}"

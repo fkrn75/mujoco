@@ -3,11 +3,13 @@
 #include <mujoco/mjplugin.h>
 
 #include "drivetrain.h"
+#include "winch.h"
 
 namespace physai {
 
 mjPLUGIN_LIB_INIT(physai_plugins) {
   RegisterDrivetrain();
+  RegisterWinch();
 }
 
 }  // namespace physai
