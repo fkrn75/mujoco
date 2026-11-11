@@ -63,6 +63,7 @@ public static class MjEngineTool {
   // Loads a model from a string.
   // It allows to perform diskless instantiation of Mujoco models.
   public static unsafe MujocoLib.mjModel_* LoadModelFromString(string contents) {
+    LoadPlugins();  // 모델의 <extension><plugin> 해석을 위해 로드 전에 1회 호출
     using (var vfs = new MjVfs()) {
       var filename = "filename";
       vfs.AddFile(filename, contents);
@@ -369,13 +370,39 @@ public static class MjEngineTool {
     }
   }
 
-  public static void LoadPlugins() {
-    if(!Directory.Exists("Packages/org.mujoco/Runtime/Plugins/")) return;
+  // 플러그인(.dll) 중복 로드 방지 플래그. 도메인 리로드 시 정적 필드가 초기화돼도
+  // mj_loadPluginLibrary 는 이미 등록된 라이브러리를 다시 불러도 안전하다.
+  private static bool _pluginsLoaded = false;
 
-    foreach (string pluginPath in Directory.GetFiles("Packages/org.mujoco/Runtime/Plugins/")) {
-      MujocoLib.mj_loadPluginLibrary(pluginPath);
+  // 엔진 플러그인 폴더 후보를 돌려준다.
+  //  1) Packages/org.mujoco/Runtime/Plugins/ (임베디드 패키지)
+  //  2) 에디터: 패키지가 file: 로 참조될 때의 실제 경로 <패키지>/Runtime/Plugins/
+  //  3) 빌드: StreamingAssets/MuJoCoPlugins/
+  private static IEnumerable<string> PluginDirectories() {
+    yield return "Packages/org.mujoco/Runtime/Plugins/";
+#if UNITY_EDITOR
+    var info = UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(MjEngineTool).Assembly);
+    if (info != null && !string.IsNullOrEmpty(info.resolvedPath)) {
+      yield return Path.Combine(info.resolvedPath, "Runtime", "Plugins");
     }
+#endif
+    yield return Path.Combine(Application.streamingAssetsPath, "MuJoCoPlugins");
+  }
 
+  // 모델을 로드하기 "전에" 1회 호출해야 모델의 <extension><plugin> 이 해석된다.
+  public static void LoadPlugins() {
+    if (_pluginsLoaded) return;
+    _pluginsLoaded = true;
+    var seen = new HashSet<string>();
+    foreach (string dir in PluginDirectories()) {
+      if (!Directory.Exists(dir)) continue;
+      // .meta 등 다른 파일은 건너뛰고 .dll 만 로드한다.
+      foreach (string pluginPath in Directory.GetFiles(dir, "*.dll")) {
+        string full = Path.GetFullPath(pluginPath);
+        if (!seen.Add(full.ToLowerInvariant())) continue;
+        MujocoLib.mj_loadPluginLibrary(full);
+      }
+    }
   }
 
 }
